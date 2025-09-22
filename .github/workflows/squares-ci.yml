@@ -10,23 +10,37 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Чекаут кода
       - uses: actions/checkout@v4
 
+      # Установка JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      # Сборка проекта и создание executable JAR
       - name: Build project
         run: mvn clean package spring-boot:repackage -B -DskipTests
 
+      # Smoke test API
       - name: Smoke test API
         run: |
+          echo "Starting Spring Boot application..."
           java -jar target/*.jar &
           PID=$!
-          sleep 5
-          curl -s http://localhost:8080/api/status -H 'Content-Type: application/json' -d '{"size":3,"rows":["...","...","..."],"turn":"WHITE"}'
+          echo "Waiting for the server to start..."
+          sleep 10
+          echo "Sending test request..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/api/status -H 'Content-Type: application/json' -d '{"size":3,"rows":["...","...","..."],"turn":"WHITE"}')
+          echo "HTTP response code: $RESPONSE"
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Smoke test failed!"
+            kill $PID
+            exit 1
+          fi
+          echo "Smoke test passed!"
           kill $PID
 
 
