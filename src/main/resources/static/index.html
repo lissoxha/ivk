@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Squares</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #board { display: grid; gap: 2px; margin-top: 10px; }
+    .cell { width: 36px; height: 36px; background:#f3f3f3; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #ccc; }
+    .W { background:#fff; border:2px solid #999; border-radius:50%; width:26px; height:26px; }
+    .B { background:#000; border-radius:50%; width:26px; height:26px; }
+    .info { margin-top: 10px; }
+    button { margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h3>Squares game</h3>
+  <div>
+    Size: <input id="size" type="number" value="7" min="3" max="15"> 
+    <button id="new">New Game</button>
+  </div>
+  <div id="board"></div>
+  <div class="info" id="info"></div>
+  <script>
+    const api = '/api';
+    let size = 7;
+    let turn = 'WHITE';
+    let rows = [];
+
+    document.getElementById('new').onclick = () => start();
+
+    function start(){
+      size = parseInt(document.getElementById('size').value||'7');
+      rows = Array.from({length:size}, () => '.'.repeat(size));
+      turn = 'WHITE';
+      render();
+      updateInfo('Your turn (W)');
+    }
+
+    function render(){
+      const board = document.getElementById('board');
+      board.style.gridTemplateColumns = `repeat(${size}, 36px)`;
+      board.innerHTML = '';
+      for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.onclick = () => userMove(x,y);
+          const ch = rows[y][x];
+          if(ch==='W'||ch==='B'){
+            const d = document.createElement('div');
+            d.className = ch;
+            cell.appendChild(d);
+          }
+          board.appendChild(cell);
+        }
+      }
+    }
+
+    function setCell(x,y,c){
+      const row = rows[y];
+      rows[y] = row.substring(0,x) + c + row.substring(x+1);
+    }
+
+    async function userMove(x,y){
+      if(turn!=='WHITE') return;
+      if(rows[y][x]!=='.') return;
+      setCell(x,y,'W');
+      turn='BLACK';
+      render();
+      const st = await status();
+      if(st.result!=='IN_PROGRESS') return finish(st.result);
+      // ask API for next move for BLACK
+      const nm = await fetch(api+'/next-move',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({size,rows,turn:'BLACK'})}).then(r=>r.json());
+      if(nm.error){ updateInfo('No move. Draw'); return; }
+      setCell(nm.x,nm.y,'B');
+      turn='WHITE';
+      render();
+      const st2 = await status();
+      if(st2.result!=='IN_PROGRESS') return finish(st2.result);
+      updateInfo('Your turn (W)');
+    }
+
+    function finish(res){
+      const map={WHITE_WINS:'You win!',BLACK_WINS:'Computer wins!',DRAW:'Draw'};
+      updateInfo(map[res]||res);
+    }
+
+    function updateInfo(t){ document.getElementById('info').innerText = t; }
+
+    async function status(){
+      return fetch(api+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({size,rows,turn})}).then(r=>r.json());
+    }
+
+    start();
+  </script>
+</body>
+</html>
