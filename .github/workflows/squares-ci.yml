@@ -19,11 +19,11 @@ jobs:
           java-version: '17'
 
       - name: Build project
-        run: mvn -B -DskipTests package
+        run: mvn -f squares-standalone/pom.xml -B -DskipTests package
 
       - name: Smoke test API
         run: |
-          java -jar target/*.jar &
+          java -jar squares-standalone/target/*.jar &
           PID=$!
           sleep 5
           curl -s http://localhost:8088/api/status -H 'Content-Type: application/json' -d '{"size":3,"rows":["...","...","..."],"turn":"WHITE"}'
