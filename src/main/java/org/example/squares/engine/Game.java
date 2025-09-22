@@ -36,7 +36,7 @@ public class Game {
         for (Board.Point p : board.freeCells()) {
             board.place(p.x, p.y, forColor);
             boolean win = SquareDetector.hasAnySquare(board, forColor);
-            undo(p);
+            board.clear(p.x, p.y);
             if (win) return Optional.of(p);
         }
         // 2) Block opponent win
@@ -44,7 +44,7 @@ public class Game {
         for (Board.Point p : board.freeCells()) {
             board.place(p.x, p.y, opp);
             boolean oppWin = SquareDetector.hasAnySquare(board, opp);
-            undo(p);
+            board.clear(p.x, p.y);
             if (oppWin) return Optional.of(p);
         }
         // 3) Otherwise pick the center-most free cell (simple heuristic)
@@ -58,17 +58,5 @@ public class Game {
             if (d < bestScore) { bestScore = d; best = p; }
         }
         return Optional.of(best);
-    }
-
-    private void undo(Board.Point p) {
-        // Simple undo by resetting cell to EMPTY
-        try {
-            java.lang.reflect.Field f = Board.class.getDeclaredField("cells");
-            f.setAccessible(true);
-            Board.Cell[][] cells = (Board.Cell[][]) f.get(board);
-            cells[p.y][p.x] = Board.Cell.EMPTY;
-        } catch (Exception e) {
-            throw new IllegalStateException("Undo failed", e);
-        }
     }
 }

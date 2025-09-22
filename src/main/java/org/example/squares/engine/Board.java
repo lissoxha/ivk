@@ -21,6 +21,11 @@ public class Board {
         }
     }
 
+    private Board(int size, Cell[][] cells) {
+        this.size = size;
+        this.cells = cells;
+    }
+
     public int getSize() { return size; }
 
     public Cell get(int x, int y) { return cells[y][x]; }
@@ -32,6 +37,19 @@ public class Board {
     public void place(int x, int y, Cell cell) {
         if (!isFree(x, y)) throw new IllegalArgumentException("Cell not free or out of bounds");
         cells[y][x] = Objects.requireNonNull(cell);
+    }
+
+    public void clear(int x, int y) {
+        if (!isInside(x, y)) throw new IllegalArgumentException("Out of bounds");
+        cells[y][x] = Cell.EMPTY;
+    }
+
+    public Board copy() {
+        Cell[][] copy = new Cell[size][size];
+        for (int y = 0; y < size; y++) {
+            System.arraycopy(cells[y], 0, copy[y], 0, size);
+        }
+        return new Board(size, copy);
     }
 
     public boolean isFull() {

@@ -2,11 +2,12 @@ package org.example.squares.cli;
 
 import org.example.squares.engine.Board;
 import org.example.squares.engine.Game;
+import org.example.squares.engine.strategy.MoveStrategy;
+import org.example.squares.engine.strategy.SimpleHeuristicStrategy;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Locale;
 import java.util.Optional;
 
 public class CliApp {
@@ -20,6 +21,7 @@ public class CliApp {
 
     private Game game;
     private Players players;
+    private final MoveStrategy strategy = new SimpleHeuristicStrategy();
 
     public static void main(String[] args) throws Exception { new CliApp().run(); }
 
@@ -30,10 +32,10 @@ public class CliApp {
         while ((line = br.readLine()) != null) {
             line = line.trim();
             if (line.isEmpty()) continue;
-            if (cmd(line, "EXIT")) { break; }
-            else if (cmd(line, "HELP")) { printHelp(); }
-            else if (line.startsWith("GAME")) { startGame(line); }
-            else if (line.startsWith("MOVE")) { move(line); }
+            if (equalsCmd(line, "EXIT")) { break; }
+            else if (equalsCmd(line, "HELP")) { printHelp(); }
+            else if (line.toUpperCase().startsWith("GAME")) { startGame(line); }
+            else if (line.toUpperCase().startsWith("MOVE")) { move(line); }
             else { System.out.println("Incorrect command"); }
             maybeAutoMove();
         }
@@ -42,8 +44,9 @@ public class CliApp {
     private void startGame(String line) {
         try {
             String args = line.substring(4).trim();
-            if (args.startsWith("")) args = args.replaceFirst("^[ ,]+", "");
+            args = args.replaceFirst("^[ ,]+", "");
             String[] parts = args.split(",");
+            if (parts.length != 3) throw new IllegalArgumentException();
             int n = Integer.parseInt(parts[0].trim());
             String u1 = parts[1].trim();
             String u2 = parts[2].trim();
@@ -58,19 +61,23 @@ public class CliApp {
     private Players parsePlayers(String u1, String u2) {
         Players p = new Players();
         String[] a = u1.split(" ");
-        p.p1 = a[0].equalsIgnoreCase("user") ? PlayerType.USER : PlayerType.COMP;
-        p.c1 = a[1].equalsIgnoreCase("W") ? Board.Cell.WHITE : Board.Cell.BLACK;
+        p.p1 = parseType(a[0]);
+        p.c1 = parseColor(a[1]);
         a = u2.split(" ");
-        p.p2 = a[0].equalsIgnoreCase("user") ? PlayerType.USER : PlayerType.COMP;
-        p.c2 = a[1].equalsIgnoreCase("W") ? Board.Cell.WHITE : Board.Cell.BLACK;
+        p.p2 = parseType(a[0]);
+        p.c2 = parseColor(a[1]);
         return p;
     }
+
+    private PlayerType parseType(String t) { return t.equalsIgnoreCase("user") ? PlayerType.USER : PlayerType.COMP; }
+    private Board.Cell parseColor(String c) { return c.equalsIgnoreCase("W") ? Board.Cell.WHITE : Board.Cell.BLACK; }
 
     private void move(String line) {
         if (game == null) { System.out.println("Incorrect command"); return; }
         try {
             String args = line.substring(4).trim();
             String[] parts = args.split(",");
+            if (parts.length != 2) throw new IllegalArgumentException();
             int x = Integer.parseInt(parts[0].trim());
             int y = Integer.parseInt(parts[1].trim());
             game.move(x, y);
@@ -87,7 +94,7 @@ public class CliApp {
         Board.Cell turn = game.getTurn();
         boolean comp = (players.c1 == turn && players.p1 == PlayerType.COMP) || (players.c2 == turn && players.p2 == PlayerType.COMP);
         if (!comp) return;
-        Optional<Board.Point> mv = game.computeComputerMove(turn);
+        Optional<Board.Point> mv = strategy.chooseMove(game, turn);
         if (mv.isPresent()) {
             Board.Point p = mv.get();
             System.out.println(colorChar(turn) + " (" + p.x + ", " + p.y + ")");
@@ -104,7 +111,7 @@ public class CliApp {
         else if (r == Game.Result.DRAW) System.out.println("Game finished. Draw");
     }
 
-    private boolean cmd(String s, String name) { return s.equalsIgnoreCase(name); }
+    private boolean equalsCmd(String s, String name) { return s.equalsIgnoreCase(name); }
 
     private String colorChar(Board.Cell c) { return (c == Board.Cell.WHITE) ? "W" : "B"; }
 
