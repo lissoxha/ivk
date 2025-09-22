@@ -68,14 +68,15 @@
             </plugin>
 
             <!-- Spring Boot plugin для executable JAR -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
-                <configuration>
-                    <mainClass>org.example.SquaresApplication</mainClass>
-                </configuration>
-            </plugin>
+         <plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <version>${spring-boot.version}</version>
+    <configuration>
+        <mainClass>org.example.SquaresApplication</mainClass>
+    </configuration>
+</plugin>
+
         </plugins>
     </build>
 </project>
